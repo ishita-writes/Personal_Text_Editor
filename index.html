@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Personal Editor (Web Preview)</title>
+    <style>
+        /* CSS Variables to handle instant theme switching */
+        :root {
+            --window-bg: #E0F7FA;
+            --text-bg: #FFD1DC;
+            --text-fg: #000000;
+            --cursor-color: #000000;
+        }
+
+        body {
+            background-color: var(--window-bg);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+            transition: background-color 0.2s ease;
+        }
+
+        /* Top Menu Navigation Bar mimicking Tkinter menus */
+        .menu-bar {
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #dcdcdc;
+            display: flex;
+            padding: 2px 10px;
+            user-select: none;
+            z-index: 10;
+        }
+
+        .menu-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .menu-trigger {
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .menu-trigger:hover {
+            background-color: #e0e0e0;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            left: 0;
+            background-color: #ffffff;
+            min-width: 180px;
+            box-shadow: 0px 4px 8px rgba(0,0,0,0.15);
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 2px 0;
+        }
+
+        .menu-dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .menu-item {
+            padding: 6px 15px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .menu-item:hover {
+            background-color: #007acc;
+            color: white;
+        }
+
+        /* Text Editor Workspace Container */
+        .editor-container {
+            flex: 1;
+            padding: 10px 10px 5px 10px;
+            display: flex;
+            box-sizing: border-box;
+        }
+
+        /* Mimics the Tkinter Text Widget */
+        .text-area {
+            flex: 1;
+            background-color: var(--text-bg);
+            color: var(--text-fg);
+            caret-color: var(--cursor-color);
+            border: 1px solid #b0c4de;
+            padding: 12px;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            resize: none;
+            outline: none;
+            box-sizing: border-box;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        /* Bottom Status Bar */
+        .status-bar {
+            background-color: var(--window-bg);
+            color: var(--text-fg);
+            padding: 5px 20px;
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Menus Map -->
+    <div class="menu-bar">
+        <!-- File Options Dropdown -->
+        <div class="menu-dropdown">
+            <div class="menu-trigger">File</div>
+            <div class="dropdown-content">
+                <div class="menu-item" onclick="newFile()">New</div>
+                <div class="menu-item" onclick="alert('File saving is exclusively supported natively on the desktop Python build!')">Save</div>
+            </div>
+        </div>
+
+        <!-- Format Options Dropdown -->
+        <div class="menu-dropdown">
+            <div class="menu-trigger">Format</div>
+            <div class="dropdown-content">
+                <div class="menu-item" onclick="toggleStyle('bold')"><span>Bold</span> <span style="opacity: 0.6;">Ctrl+B</span></div>
+                <div class="menu-item" onclick="toggleStyle('italic')"><span>Italic</span> <span style="opacity: 0.6;">Ctrl+I</span></div>
+                <div class="menu-item" onclick="toggleStyle('underline')"><span>Underline</span> <span style="opacity: 0.6;">Ctrl+U</span></div>
+            </div>
+        </div>
+
+        <!-- Fonts Dropdown -->
+        <div class="menu-dropdown">
+            <div class="menu-trigger">Fonts</div>
+            <div class="dropdown-content">
+                <div class="menu-item" onclick="changeFont('Arial')">Arial</div>
+                <div class="menu-item" onclick="changeFont('Courier New')">Courier</div>
+                <div class="menu-item" onclick="changeFont('Helvetica')">Helvetica</div>
+                <div class="menu-item" onclick="changeFont('Times New Roman')">Times New Roman</div>
+                <div class="menu-item" onclick="changeFont('Comic Sans MS')">Comic Sans MS</div>
+            </div>
+        </div>
+
+        <!-- Dynamic Unified Themes Dropdown -->
+        <div class="menu-dropdown">
+            <div class="menu-trigger">Themes</div>
+            <div class="dropdown-content">
+                <div class="menu-item" onclick="applyTheme('Pastel')">Pastel</div>
+                <div class="menu-item" onclick="applyTheme('Midnight Dark')">Midnight Dark</div>
+                <div class="menu-item" onclick="applyTheme('Cyberpunk')">Cyberpunk</div>
+                <div class="menu-item" onclick="applyTheme('Matrix')">Matrix</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Entry Input Field Workspace -->
+    <div class="editor-container">
+        <textarea id="editor" class="text-area" placeholder="Type here..." oninput="updateCounts()"></textarea>
+    </div>
+
+    <!-- Counters Panel Frame -->
+    <div class="status-bar" id="statusBar">
+        <span id="wordCountLabel">Words: 0</span>
+        <span id="charCountLabel">Characters: 0</span>
+    </div>
+
+    <!-- JavaScript Logic Control System -->
+    <script>
+        const editor = document.getElementById('editor');
+        const charLabel = document.getElementById('charCountLabel');
+        const wordLabel = document.getElementById('wordCountLabel');
+        const statusBar = document.getElementById('statusBar');
+
+        // Centralized configuration data map for theme styles
+        const THEMES = {
+            "Pastel": {win: "#E0F7FA", txtBg: "#FFD1DC", txtFg: "#000000", cur: "#000000"},
+            "Midnight Dark": {win: "#212121", txtBg: "#1E1E1E", txtFg: "#FFFFFF", cur: "#FFFFFF"},
+            "Cyberpunk": {win: "#0F051D", txtBg: "#1A0B2E", txtFg: "#00FF66", cur: "#00FF66"},
+            "Matrix": {win: "#000000", txtBg: "#000000", txtFg: "#00FF00", cur: "#00FF00"}
+        };
+
+        // Real-time statistical metrics update loop
+        function updateCounts() {
+            const content = editor.value;
+            charLabel.innerText = `Characters: ${content.length}`;
+            
+            // Evaluates clean string word arrays via empty whitespace split rules
+            const wordsArray = content.split(/\s+/).filter(w => w.trim().length > 0);
+            wordLabel.innerText = `Words: ${wordsArray.length}`;
+        }
+
+        // Font Engine Updates
+        function changeFont(fontName) {
+            editor.style.fontFamily = fontName;
+        }
+
+        // Toggles global CSS theme runtime variable settings
+        function applyTheme(themeName) {
+            const config = THEMES[themeName];
+            const rootStyle = document.documentElement.style;
+            
+            rootStyle.setProperty('--window-bg', config.win);
+            rootStyle.setProperty('--text-bg', config.txtBg);
+            rootStyle.setProperty('--text-fg', config.txtFg);
+            rootStyle.setProperty('--cursor-color', config.cur);
+            
+            // Adjust status bar text color logic for high contrast styling visibility
+            if (themeName === "Pastel") {
+                statusBar.style.color = "#000000";
+            } else {
+                statusBar.style.color = config.txtFg;
+            }
+        }
+
+        // Simple interface document cleaner script
+        function newFile() {
+            if (editor.value.trim().length > 0) {
+                if (!confirm("Discard unsaved changes?")) return;
+            }
+            editor.value = '';
+            updateCounts();
+        }
+
+        // Handles basic Global UI formatting styling mechanics
+        function toggleStyle(styleType) {
+            if (styleType === 'bold') {
+                editor.style.fontWeight = editor.style.fontWeight === 'bold' ? 'normal' : 'bold';
+            } else if (styleType === 'italic') {
+                editor.style.fontStyle = editor.style.fontStyle === 'italic' ? 'normal' : 'italic';
+            } else if (styleType === 'underline') {
+                editor.style.textDecoration = editor.style.textDecoration === 'underline' ? 'none' : 'underline';
+            }
+        }
+
+        // Event listener hooks mapping classic text desktop keyboard shortcut overrides
+        window.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key.toLowerCase()) {
+                    case 'b':
+                        e.preventDefault();
+                        toggleStyle('bold');
+                        break;
+                    case 'i':
+                        e.preventDefault();
+                        toggleStyle('italic');
+                        break;
+                    case 'u':
+                        e.preventDefault();
+                        toggleStyle('underline');
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
